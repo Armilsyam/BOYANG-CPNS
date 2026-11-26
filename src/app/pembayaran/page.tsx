@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { BrandLogo } from "@/components/brand-logo";
 import { AuthCard } from "@/components/auth-card";
 import { QrisCheckout } from "@/components/qris-checkout";
-import { isDatabaseConfigured } from "@/db";
+import { getDb, isDatabaseConfigured, schema } from "@/db";
 import { getCurrentUser } from "@/lib/session";
 import { isMidtransConfigured } from "@/lib/midtrans";
 
@@ -14,6 +15,36 @@ export default async function PembayaranPage() {
   const midtransEnv =
     process.env.MIDTRANS_IS_PRODUCTION === "true" ? "production" : "sandbox";
   const user = await getCurrentUser();
+
+  let initialStaticOrder: {
+    orderId: string;
+    amount: number;
+    status: string;
+    proofNote: string | null;
+  } | null = null;
+
+  if (user && !user.hasPaidAccess && dbConfigured) {
+    const db = getDb();
+    const [latest] = await db
+      .select({
+        orderId: schema.qrisOrders.orderId,
+        amount: schema.qrisOrders.amount,
+        status: schema.qrisOrders.status,
+        proofNote: schema.qrisOrders.proofNote,
+      })
+      .from(schema.qrisOrders)
+      .where(
+        and(
+          eq(schema.qrisOrders.userId, user.id),
+          eq(schema.qrisOrders.paymentMethod, "static_qris"),
+          inArray(schema.qrisOrders.status, ["pending", "waiting_verification"])
+        )
+      )
+      .orderBy(desc(schema.qrisOrders.createdAt))
+      .limit(1);
+
+    initialStaticOrder = latest ?? null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F4F7FB]">
@@ -41,7 +72,7 @@ export default async function PembayaranPage() {
             Pembayaran Akses BOYANG-CPNS
           </h1>
           <p className="mt-1.5 text-sm text-slate-600">
-            Cukup sekali bayar <strong>Rp 10.000 via QRIS</strong>, akun Anda langsung terbuka penuh untuk akses jangka panjang.
+            Cukup sekali bayar <strong>Rp 10.000 via QRIS</strong>, akun Anda langsung aktif untuk akses penuh 304 Formasi, Materi SKD &amp; Tryout CAT.
           </p>
         </div>
 
@@ -63,9 +94,9 @@ export default async function PembayaranPage() {
               </h2>
               <ol className="mt-4 space-y-3 text-sm text-slate-700 list-decimal pl-5">
                 <li>Isi Nama, Email, dan Kata Sandi untuk membuat akun Anda.</li>
-                <li>Klik <strong>Buat Kode QRIS Rp 10.000</strong>.</li>
-                <li>Scan QRIS lewat GoPay, OVO, DANA, ShopeePay, atau Mobile Banking.</li>
-                <li>Dashboard langsung terbuka otomatis dan ID Member tersimpan di akun Anda.</li>
+                <li>Scan <strong>QRIS Resmi PODCAST MANDAR, Service</strong> senilai <strong>Rp 10.000</strong>.</li>
+                <li>Klik <strong>Saya Sudah Bayar Rp 10.000</strong> atau masukkan Kode Aktivasi dari admin.</li>
+                <li>Dashboard langsung terbuka dan tersimpan permanen di akun Anda.</li>
               </ol>
             </div>
           </div>
@@ -75,8 +106,10 @@ export default async function PembayaranPage() {
             userEmail={user.email}
             hasPaidAccess={user.hasPaidAccess}
             accessCode={user.accessCode}
+            initialStaticOrder={initialStaticOrder}
             midtransConfigured={midtransConfigured}
             midtransEnv={midtransEnv}
+            adminWhatsapp={process.env.NEXT_PUBLIC_ADMIN_WHATSAPP}
           />
         )}
       </main>

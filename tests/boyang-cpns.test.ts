@@ -9,6 +9,7 @@ import {
   mapMidtransStatus,
   verifyMidtransSignature,
 } from "../src/lib/midtrans";
+import { isAdminEmail, STATIC_QRIS_MERCHANT } from "../src/lib/admin";
 import { gradeTryoutAnswers } from "../src/lib/tryout-scoring";
 
 test("Formasi dataset has all 304 official agency records", () => {
@@ -100,4 +101,16 @@ test("Midtrans SHA-512 signature verification rejects tampering", () => {
   assert.equal(mapMidtransStatus("capture", "deny"), "deny");
   assert.equal(mapMidtransStatus("expire"), "expire");
   assert.match(generateAccessCode(), /^BYG-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+});
+
+test("Static merchant QRIS and admin email matching work correctly", () => {
+  assert.equal(STATIC_QRIS_MERCHANT.merchantName, "PODCAST MANDAR, Service");
+  assert.equal(STATIC_QRIS_MERCHANT.nmid, "ID1025386863944");
+  assert.equal(STATIC_QRIS_MERCHANT.imagePath, "/qris-boyang.jpg");
+
+  const prev = process.env.ADMIN_EMAILS;
+  process.env.ADMIN_EMAILS = "admin@boyang.id, Muh.ArmilSyamsyam@gmail.com";
+  assert.equal(isAdminEmail("muh.armilsyamsyam@gmail.com"), true);
+  assert.equal(isAdminEmail("user@example.com"), false);
+  process.env.ADMIN_EMAILS = prev;
 });

@@ -72,8 +72,7 @@ export function AuthCard({
           <div>
             <p className="font-bold">Database Neon Belum Terhubung</p>
             <p className="mt-0.5 text-amber-800">
-              Jalankan <code className="font-mono font-semibold">vercel integration add neon</code> dan{" "}
-              <code className="font-mono font-semibold">npm run db:push</code> sebelum login/daftar.
+              Tambahkan <strong>Neon Postgres</strong> di Vercel Dashboard (tab <strong>Storage / Marketplace</strong>) lalu <strong>Redeploy</strong>, atau jalankan <code className="font-mono font-semibold">vercel integration add neon</code>. Tabel akan dibuat otomatis.
             </p>
           </div>
         </div>

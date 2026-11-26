@@ -69,7 +69,9 @@ export const qrisOrders = pgTable("qris_orders", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull().default(10000),
-  status: text("status").notNull().default("pending"), // pending | settlement | expire | cancel | deny
+  paymentMethod: text("payment_method").notNull().default("static_qris"), // static_qris | midtrans_qris
+  status: text("status").notNull().default("pending"), // pending | waiting_verification | settlement | expire | cancel | deny
+  proofNote: text("proof_note"),
   midtransTransactionId: text("midtrans_transaction_id"),
   qrString: text("qr_string"),
   qrImageUrl: text("qr_image_url"),
@@ -78,6 +80,19 @@ export const qrisOrders = pgTable("qris_orders", {
   rawNotification: text("raw_notification"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const accessVouchers = pgTable("access_vouchers", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  note: text("note"),
+  createdByEmail: text("created_by_email"),
+  usedByUserId: text("used_by_user_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  usedAt: timestamp("used_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const userBookmarks = pgTable(

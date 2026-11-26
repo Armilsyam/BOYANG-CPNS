@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { getDb, isDatabaseConfigured, schema } from "@/db";
+import { ensureDatabaseSchema } from "@/db/ensure-schema";
 import { getAuth } from "@/lib/auth";
 
 export interface AuthenticatedUser {
@@ -19,6 +20,7 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   }
 
   try {
+    await ensureDatabaseSchema();
     const auth = getAuth();
     const session = await auth.api.getSession({
       headers: await headers(),

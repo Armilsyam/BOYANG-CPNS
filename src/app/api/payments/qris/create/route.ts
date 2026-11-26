@@ -106,6 +106,7 @@ export async function POST() {
       orderId,
       userId: user.id,
       amount: ACCESS_PRICE_IDR,
+      paymentMethod: "midtrans_qris",
       status: "pending",
       midtransTransactionId: charge.transaction_id ?? null,
       qrString,

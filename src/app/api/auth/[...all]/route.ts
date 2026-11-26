@@ -1,6 +1,7 @@
 import { toNextJsHandler } from "better-auth/next-js";
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/db";
+import { ensureDatabaseSchema } from "@/db/ensure-schema";
 import { getAuth } from "@/lib/auth";
 
 async function handleAuth(request: Request) {
@@ -9,12 +10,13 @@ async function handleAuth(request: Request) {
       {
         error: "DATABASE_NOT_CONFIGURED",
         message:
-          "Database Neon Postgres belum terhubung. Tambahkan Neon via Vercel Marketplace (`vercel integration add neon`) atau atur DATABASE_URL di .env.local.",
+          "Database Neon Postgres belum terhubung. Tambahkan Neon melalui Vercel Dashboard Storage/Marketplace atau `vercel integration add neon`.",
       },
       { status: 503 }
     );
   }
 
+  await ensureDatabaseSchema();
   const handler = toNextJsHandler(getAuth());
   const method = request.method.toUpperCase();
   if (method === "GET") return handler.GET(request);
