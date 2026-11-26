@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --navy: #0b2a52;
+  --navy-deep: #071d3a;
+  --amber: #f59e0b;
+  --gold: #facc15;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-heading {
+  font-family: var(--font-heading), var(--font-sans), system-ui, sans-serif;
+}
+
+mark {
+  background-color: #fef08a;
+  color: #0f172a;
+  padding: 0 3px;
+  border-radius: 4px;
+}

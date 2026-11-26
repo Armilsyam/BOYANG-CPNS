@@ -1,0 +1,42 @@
+{
+  "name": "boyang-cpns",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BOYANG-CPNS — Dashboard Persiapan CPNS 2026 (304 Formasi PDF, Materi SKD TWK/TIU/TKP, Tryout CAT, Panduan SSCASN) dengan Pembayaran QRIS Rp 10.000",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
+    "@vercel/config": "latest",
+    "better-auth": "latest",
+    "drizzle-orm": "^0.45.4",
+    "lucide-react": "^1.81.0",
+    "next": "^16.4.6",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "dotenv-cli": "^8.0.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.4.6",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}
