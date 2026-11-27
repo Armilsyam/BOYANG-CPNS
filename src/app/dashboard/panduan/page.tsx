@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { getAdminWhatsapp, getPaidWaChannelUrl } from "@/lib/admin";
 import { getCurrentUser } from "@/lib/session";
 import { PanduanHub } from "@/components/panduan-hub";
 
@@ -18,8 +19,10 @@ export default async function PanduanPage() {
   return (
     <PanduanHub
       initialCompletedIds={rows.filter((r) => r.completed).map((r) => r.stepId)}
-      adminWhatsapp={process.env.NEXT_PUBLIC_ADMIN_WHATSAPP}
-      communityWaUrl={process.env.NEXT_PUBLIC_COMMUNITY_WA_URL}
+      adminWhatsapp={getAdminWhatsapp()}
+      communityWaUrl={getPaidWaChannelUrl()}
+      userName={user.name}
+      userAccessCode={user.accessCode}
     />
   );
 }

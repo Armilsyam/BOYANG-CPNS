@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Lock, Mail, Phone, User, AlertTriangle } from "lucide-react";
+import {
+  AlertTriangle,
+  KeyRound,
+  Loader2,
+  Lock,
+  Mail,
+  Phone,
+  Sparkles,
+  User,
+} from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
 export function AuthCard({
@@ -17,6 +26,7 @@ export function AuthCard({
   const router = useRouter();
   const [tab, setTab] = useState<"masuk" | "daftar">(initialTab);
   const [name, setName] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +44,7 @@ export function AuthCard({
           name: name.trim(),
           email: email.trim(),
           password,
-          whatsapp: whatsapp.trim() || undefined,
+          whatsapp: whatsapp.trim(),
         } as Parameters<typeof authClient.signUp.email>[0]);
 
         if (res.error) {
@@ -45,13 +55,17 @@ export function AuthCard({
         router.push("/pembayaran");
         router.refresh();
       } else {
-        const res = await authClient.signIn.email({
-          email: email.trim(),
-          password,
+        const res = await fetch("/api/auth/login-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier: identifier.trim(),
+            password,
+          }),
         });
-
-        if (res.error) {
-          setError(res.error.message || "Email atau kata sandi salah.");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(data.message || "Email / Kode Login atau kata sandi salah.");
           setLoading(false);
           return;
         }
@@ -72,7 +86,9 @@ export function AuthCard({
           <div>
             <p className="font-bold">Database Neon Belum Terhubung</p>
             <p className="mt-0.5 text-amber-800">
-              Tambahkan <strong>Neon Postgres</strong> di Vercel Dashboard (tab <strong>Storage / Marketplace</strong>) lalu <strong>Redeploy</strong>, atau jalankan <code className="font-mono font-semibold">vercel integration add neon</code>. Tabel akan dibuat otomatis.
+              Tambahkan <strong>Neon Postgres</strong> di Vercel Dashboard (tab{" "}
+              <strong>Storage / Marketplace</strong>) lalu <strong>Redeploy</strong>, atau jalankan{" "}
+              <code className="font-mono font-semibold">vercel integration add neon</code>.
             </p>
           </div>
         </div>
@@ -110,54 +126,76 @@ export function AuthCard({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {tab === "daftar" && (
+        {tab === "daftar" ? (
+          <>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5">
+                Nama Lengkap
+              </label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Contoh: Budi Santoso"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#0B2A52] focus:bg-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5">
+                Email Aktif
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nama@email.com"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#0B2A52] focus:bg-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5">
+                Nomor WhatsApp Aktif (Wajib)
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+                <input
+                  type="tel"
+                  required
+                  minLength={9}
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="08xxxxxxxxxx"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#0B2A52] focus:bg-white"
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Dipakai untuk notifikasi &amp; pencocokan konfirmasi pembayaran QRIS ke Admin.
+              </p>
+            </div>
+          </>
+        ) : (
           <div>
             <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5">
-              Nama Lengkap
+              Email atau Kode Login (BYG-XXXX-XXXX)
             </label>
             <div className="relative">
-              <User className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+              <KeyRound className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: Budi Santoso"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#0B2A52] focus:bg-white"
-              />
-            </div>
-          </div>
-        )}
-
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5">
-            Email Aktif
-          </label>
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nama@email.com"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#0B2A52] focus:bg-white"
-            />
-          </div>
-        </div>
-
-        {tab === "daftar" && (
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5">
-              Nomor WhatsApp (Opsional)
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-              <input
-                type="tel"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="0812xxxxxxxx"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="nama@email.com atau BYG-XXXX-XXXX"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#0B2A52] focus:bg-white"
               />
             </div>
@@ -182,6 +220,15 @@ export function AuthCard({
           </div>
         </div>
 
+        {tab === "daftar" && (
+          <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-[11px] text-blue-950">
+            <Sparkles className="h-4 w-4 shrink-0 text-[#0B2A52] mt-0.5" />
+            <span>
+              Sistem akan otomatis membuatkan <strong>Kode Login Pribadi</strong> unik untuk akun Anda setelah daftar.
+            </span>
+          </div>
+        )}
+
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-700">
             {error}
@@ -195,7 +242,7 @@ export function AuthCard({
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           {tab === "daftar"
-            ? "Buat Akun & Lanjut Bayar QRIS Rp 10.000"
+            ? "Daftar & Lanjut Bayar QRIS Rp 10.000"
             : "Masuk ke BOYANG-CPNS"}
         </button>
       </form>

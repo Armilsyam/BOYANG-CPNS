@@ -13,15 +13,24 @@ import {
   CPNS_NEWS_UPDATES,
   SSCASN_CHECKLIST,
 } from "@/data/resources";
+import {
+  DEFAULT_ADMIN_WHATSAPP,
+  DEFAULT_WA_CHANNEL_URL,
+  normalizeWhatsappNumber,
+} from "@/lib/admin";
 
 export function PanduanHub({
   initialCompletedIds,
   adminWhatsapp,
   communityWaUrl,
+  userName,
+  userAccessCode,
 }: {
   initialCompletedIds: string[];
   adminWhatsapp?: string;
   communityWaUrl?: string;
+  userName?: string;
+  userAccessCode?: string | null;
 }) {
   const [completed, setCompleted] = useState<Set<string>>(
     () => new Set(initialCompletedIds)
@@ -55,9 +64,14 @@ export function PanduanHub({
     (completed.size / SSCASN_CHECKLIST.length) * 100
   );
 
-  const sanitizedAdminWa = (adminWhatsapp || "").replace(/[^0-9]/g, "");
-  const hasAdminWa =
-    sanitizedAdminWa.length >= 9 && sanitizedAdminWa !== "6281234567890";
+  const sanitizedAdminWa = (() => {
+    const n = normalizeWhatsappNumber(adminWhatsapp);
+    return n.length >= 9 ? n : DEFAULT_ADMIN_WHATSAPP;
+  })();
+  const adminDisplay = sanitizedAdminWa.startsWith("62")
+    ? `0${sanitizedAdminWa.slice(2)}`
+    : sanitizedAdminWa;
+  const channelHref = communityWaUrl?.trim() || DEFAULT_WA_CHANNEL_URL;
 
   return (
     <div className="space-y-8">
@@ -178,53 +192,38 @@ export function PanduanHub({
         </div>
       </section>
 
-      {/* Komunitas & Admin BOYANG-CPNS */}
+      {/* Saluran WA Resmi & Konsultasi Admin BOYANG-CPNS */}
       <section className="rounded-2xl border border-slate-200 bg-[#0B2A52] p-6 text-white shadow-xs">
         <h2 className="font-heading text-lg font-black">
-          Komunitas &amp; Dukungan Member BOYANG-CPNS
+          Saluran WhatsApp Resmi &amp; Konsultasi Admin BOYANG-CPNS
         </h2>
         <p className="mt-1 text-xs text-slate-200 max-w-2xl">
-          Saluran dukungan &amp; grup belajar khusus member BOYANG-CPNS dapat dikonfigurasi langsung oleh pemilik website melalui environment variables{" "}
-          <code className="font-mono text-amber-300">NEXT_PUBLIC_COMMUNITY_WA_URL</code> dan{" "}
-          <code className="font-mono text-amber-300">NEXT_PUBLIC_ADMIN_WHATSAPP</code>.
+          Ikuti saluran WhatsApp resmi khusus member untuk info update formasi &amp; materi harian, atau hubungi Admin ({adminDisplay}) untuk konsultasi.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          {communityWaUrl ? (
-            <a
-              href={communityWaUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-black text-[#0B2A52] hover:bg-amber-300"
-            >
-              <Users className="h-4 w-4" />
-              Gabung Grup Belajar BOYANG-CPNS
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-bold text-slate-200">
-              <Users className="h-4 w-4 text-amber-300" />
-              Link Grup Komunitas siap diisi via ENV
-            </span>
-          )}
+          <a
+            href={channelHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-black text-[#0B2A52] hover:bg-amber-300"
+          >
+            <Users className="h-4 w-4" />
+            Ikuti Saluran BOYANG-CPNS di WhatsApp
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
 
-          {hasAdminWa ? (
-            <a
-              href={`https://wa.me/${sanitizedAdminWa}?text=${encodeURIComponent(
-                "Halo Admin BOYANG-CPNS, saya butuh bantuan seputar akses dashboard."
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-black text-white hover:bg-emerald-600"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Hubungi Admin BOYANG-CPNS
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-bold text-slate-200">
-              <MessageCircle className="h-4 w-4 text-emerald-300" />
-              Nomor Admin WA siap diisi via ENV
-            </span>
-          )}
+          <a
+            href={`https://wa.me/${sanitizedAdminWa}?text=${encodeURIComponent(
+              `Halo Admin BOYANG-CPNS (${adminDisplay}), saya ${userName || "Member"} (Kode Login: ${userAccessCode || "-"}) ingin konsultasi seputar persiapan CPNS.`
+            )}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-black text-white hover:bg-emerald-600"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Konsultasi Admin ({adminDisplay})
+          </a>
         </div>
       </section>
     </div>

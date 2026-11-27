@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { BrandLogo } from "@/components/brand-logo";
-import { AdminPanel, type AdminOrderRow, type AdminVoucherRow } from "@/components/admin-panel";
+import {
+  AdminPanel,
+  type AdminOrderRow,
+  type AdminUserRow,
+  type AdminVoucherRow,
+} from "@/components/admin-panel";
 import { getDb, schema } from "@/db";
 import { isAdminEmail } from "@/lib/admin";
 import { getCurrentUser } from "@/lib/session";
@@ -19,7 +24,7 @@ export default async function AdminPage() {
   }
 
   const db = getDb();
-  const [orders, vouchers] = await Promise.all([
+  const [orders, users, vouchers] = await Promise.all([
     db
       .select({
         id: schema.qrisOrders.id,
@@ -41,6 +46,19 @@ export default async function AdminPage() {
       .orderBy(desc(schema.qrisOrders.createdAt))
       .limit(50),
     db
+      .select({
+        id: schema.user.id,
+        name: schema.user.name,
+        email: schema.user.email,
+        whatsapp: schema.user.whatsapp,
+        hasPaidAccess: schema.user.hasPaidAccess,
+        accessCode: schema.user.accessCode,
+        createdAt: schema.user.createdAt,
+      })
+      .from(schema.user)
+      .orderBy(desc(schema.user.createdAt))
+      .limit(50),
+    db
       .select()
       .from(schema.accessVouchers)
       .orderBy(desc(schema.accessVouchers.createdAt))
@@ -50,6 +68,11 @@ export default async function AdminPage() {
   const serializedOrders: AdminOrderRow[] = orders.map((o) => ({
     ...o,
     createdAt: o.createdAt.toISOString(),
+  }));
+
+  const serializedUsers: AdminUserRow[] = users.map((u) => ({
+    ...u,
+    createdAt: u.createdAt.toISOString(),
   }));
 
   const serializedVouchers: AdminVoucherRow[] = vouchers.map((v) => ({
@@ -78,12 +101,13 @@ export default async function AdminPage() {
             Verifikasi Pembayaran QRIS BOYANG-CPNS
           </h1>
           <p className="mt-1 text-xs text-slate-600">
-            Setujui pembayaran QRIS Rp 10.000 (PODCAST MANDAR, Service) atau buat kode voucher aktivasi instan.
+            Setujui pembayaran QRIS Rp 10.000 (PODCAST MANDAR, Service), pantau Kode Login pendaftar, atau buat kode voucher aktivasi instan.
           </p>
         </div>
 
         <AdminPanel
           initialOrders={serializedOrders}
+          initialUsers={serializedUsers}
           initialVouchers={serializedVouchers}
         />
       </main>

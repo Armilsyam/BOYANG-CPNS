@@ -4,9 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Check,
   CheckCircle2,
   Clock,
+  Copy,
   Download,
+  ExternalLink,
   KeyRound,
   Loader2,
   MessageCircle,
@@ -14,18 +17,26 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Users,
 } from "lucide-react";
-import { STATIC_QRIS_MERCHANT } from "@/lib/admin";
+import {
+  DEFAULT_ADMIN_WHATSAPP,
+  DEFAULT_WA_CHANNEL_URL,
+  STATIC_QRIS_MERCHANT,
+  normalizeWhatsappNumber,
+} from "@/lib/admin";
 
 interface QrisCheckoutProps {
   userName: string;
   userEmail: string;
+  userWhatsapp: string | null;
   hasPaidAccess: boolean;
   accessCode: string | null;
   initialStaticOrder?: StaticOrderState | null;
   midtransConfigured: boolean;
   midtransEnv: "sandbox" | "production";
   adminWhatsapp?: string;
+  waChannelUrl?: string;
 }
 
 interface ActiveMidtransOrder {
@@ -48,16 +59,19 @@ interface StaticOrderState {
 export function QrisCheckout({
   userName,
   userEmail,
+  userWhatsapp,
   hasPaidAccess: initialPaid,
   accessCode: initialCode,
   initialStaticOrder = null,
   midtransConfigured,
   midtransEnv,
   adminWhatsapp,
+  waChannelUrl,
 }: QrisCheckoutProps) {
   const router = useRouter();
   const [hasPaid, setHasPaid] = useState(initialPaid);
   const [accessCode, setAccessCode] = useState(initialCode);
+  const [copiedLoginCode, setCopiedLoginCode] = useState(false);
   const [tab, setTab] = useState<"static" | "midtrans">("static");
 
   // Static QRIS (PODCAST MANDAR, Service) state
@@ -80,6 +94,15 @@ export function QrisCheckout({
   const [checkingMt, setCheckingMt] = useState(false);
   const [mtError, setMtError] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
+
+  const adminWaDigits = (() => {
+    const n = normalizeWhatsappNumber(adminWhatsapp);
+    return n.length >= 9 ? n : DEFAULT_ADMIN_WHATSAPP;
+  })();
+  const adminWaDisplay = adminWaDigits.startsWith("62")
+    ? `0${adminWaDigits.slice(2)}`
+    : adminWaDigits;
+  const paidChannelLink = waChannelUrl?.trim() || DEFAULT_WA_CHANNEL_URL;
 
   const secondsLeft =
     mtOrder?.expiresAt && !hasPaid
@@ -119,6 +142,39 @@ export function QrisCheckout({
     return () => clearInterval(t);
   }, [hasPaid, staticOrder, refreshStaticStatus]);
 
+  async function copyPersonalCode() {
+    if (!accessCode) return;
+    try {
+      await navigator.clipboard.writeText(accessCode);
+      setCopiedLoginCode(true);
+      setTimeout(() => setCopiedLoginCode(false), 1800);
+    } catch {
+      // Ignore clipboard permissions error
+    }
+  }
+
+  function buildWaConfirmationUrl(orderIdValue?: string) {
+    const text =
+      `Halo Admin BOYANG-CPNS (${adminWaDisplay}), saya mau konfirmasi pembayaran QRIS Rp 10.000 ke ${STATIC_QRIS_MERCHANT.merchantName}.\n\n` +
+      `Nama: ${userName}\n` +
+      `Email: ${userEmail}\n` +
+      `No. WhatsApp: ${userWhatsapp || "-"}\n` +
+      `Kode Login Saya: ${accessCode || "-"}\n` +
+      `Order ID: ${orderIdValue || staticOrder?.orderId || "BARU"}` +
+      (proofNote.trim() ? `\nCatatan Transfer: ${proofNote.trim()}` : "") +
+      `\n\nMohon bantuannya untuk aktivasi akun & akses Saluran BOYANG-CPNS. Terima kasih!`;
+    return `https://wa.me/${adminWaDigits}?text=${encodeURIComponent(text)}`;
+  }
+
+  function buildWaConsultUrl() {
+    const text =
+      `Halo Admin BOYANG-CPNS, saya ingin konsultasi sebelum/saat aktivasi akses.\n` +
+      `Nama: ${userName}\n` +
+      `Email: ${userEmail}\n` +
+      `Kode Login: ${accessCode || "-"}`;
+    return `https://wa.me/${adminWaDigits}?text=${encodeURIComponent(text)}`;
+  }
+
   async function handleConfirmStaticQris(e: React.FormEvent) {
     e.preventDefault();
     setStaticBusy(true);
@@ -146,7 +202,13 @@ export function QrisCheckout({
       }
       setStaticOrder(data.order);
       setStaticInfo(
-        "Konfirmasi dicatat! Admin akan memverifikasi mutasi QRIS Rp 10.000 Anda dan halaman ini akan terbuka otomatis."
+        `Pesanan dicatat (${data.order?.orderId}). Silakan kirim konfirmasi ke WhatsApp Admin ${adminWaDisplay} agar segera diaktifkan.`
+      );
+      // Open WhatsApp confirmation directly for customer convenience
+      window.open(
+        buildWaConfirmationUrl(data.order?.orderId),
+        "_blank",
+        "noopener,noreferrer"
       );
     } catch {
       setStaticError("Gagal terhubung ke server.");
@@ -244,47 +306,111 @@ export function QrisCheckout({
 
   if (hasPaid) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+      <div className="rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm space-y-6">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
           <CheckCircle2 className="h-9 w-9" />
         </div>
-        <h2 className="font-heading text-2xl font-black text-[#0B2A52]">
-          Akses BOYANG-CPNS Sudah Aktif!
-        </h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Terima kasih, <strong>{userName}</strong> ({userEmail}). Akses penuh dashboard Anda sudah terbuka.
-        </p>
+        <div>
+          <h2 className="font-heading text-2xl font-black text-[#0B2A52]">
+            Akses BOYANG-CPNS &amp; Saluran WA Resmi Terbuka!
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Terima kasih, <strong>{userName}</strong> ({userEmail}). Pembayaran Rp 10.000 Anda sudah aktif.
+          </p>
+        </div>
 
         {accessCode && (
-          <div className="mx-auto mt-5 max-w-xs rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <div className="mx-auto max-w-sm rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
             <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
-              ID / Kode Akses Member
+              Kode Login Pribadi Anda (Simpan Baik-Baik)
             </p>
-            <p className="mt-1 font-mono text-lg font-black text-emerald-900">
-              {accessCode}
+            <div className="mt-1.5 flex items-center justify-center gap-2">
+              <p className="font-mono text-xl font-black text-emerald-900">
+                {accessCode}
+              </p>
+              <button
+                type="button"
+                onClick={copyPersonalCode}
+                className="rounded-lg border border-emerald-300 bg-white p-1.5 text-emerald-800 hover:bg-emerald-100"
+                title="Salin Kode Login"
+              >
+                {copiedLoginCode ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-emerald-800">
+              Anda bisa login kembali kapan saja memakai <strong>{accessCode}</strong> atau email Anda.
             </p>
           </div>
         )}
 
-        <Link
-          href="/dashboard"
-          className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-[#0B2A52] px-6 py-3.5 text-sm font-extrabold text-white shadow-sm hover:bg-[#154078]"
-        >
-          <Sparkles className="h-4 w-4 text-amber-400" />
-          Masuk ke Dashboard BOYANG-CPNS
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0B2A52] px-6 py-3.5 text-sm font-extrabold text-white shadow-sm hover:bg-[#154078]"
+          >
+            <Sparkles className="h-4 w-4 text-amber-400" />
+            Masuk ke Dashboard BOYANG-CPNS
+          </Link>
+
+          <a
+            href={paidChannelLink}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-700"
+          >
+            <Users className="h-4 w-4" />
+            Ikuti Saluran WhatsApp BOYANG-CPNS
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
       </div>
     );
   }
 
-  const sanitizedAdminWa = (adminWhatsapp || "").replace(/[^0-9]/g, "");
-  const hasAdminWa =
-    sanitizedAdminWa.length >= 9 && sanitizedAdminWa !== "6281234567890";
-  const waConfirmText = `Halo Admin BOYANG-CPNS, saya sudah bayar QRIS Rp 10.000 ke ${STATIC_QRIS_MERCHANT.merchantName}.\nNama: ${userName}\nEmail: ${userEmail}${staticOrder?.orderId ? `\nOrder ID: ${staticOrder.orderId}` : ""}${proofNote ? `\nCatatan: ${proofNote}` : ""}`;
-
   return (
     <div className="grid gap-6 lg:grid-cols-5">
       <div className="lg:col-span-3 space-y-5">
+        {/* Personal System-Generated Login Code Card */}
+        {accessCode && (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/80 p-5 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#0B2A52]">
+                  <KeyRound className="h-3.5 w-3.5 text-amber-600" />
+                  Kode Login Pribadi Anda (Dibuat Otomatis oleh Sistem)
+                </p>
+                <p className="mt-1 font-mono text-xl font-black text-[#0B2A52]">
+                  {accessCode}
+                </p>
+                <p className="mt-1 text-xs text-slate-700">
+                  Simpan kode ini untuk login kapan saja di <strong>/masuk</strong>. Sertakan juga saat konfirmasi WA ke Admin.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={copyPersonalCode}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-blue-300 bg-white px-3.5 py-2 text-xs font-extrabold text-[#0B2A52] hover:bg-blue-100"
+              >
+                {copiedLoginCode ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    Tersalin
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    Salin Kode
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 pb-5 border-b border-slate-100">
             <div>
@@ -335,7 +461,8 @@ export function QrisCheckout({
             <div className="mt-5 space-y-5">
               <div className="rounded-xl bg-slate-50 p-4 text-xs text-slate-700 space-y-1">
                 <p>
-                  Akun aktif: <strong className="text-slate-900">{userName}</strong> ({userEmail})
+                  Peserta: <strong className="text-slate-900">{userName}</strong> ({userEmail}
+                  {userWhatsapp ? ` · WA ${userWhatsapp}` : ""})
                 </p>
                 <p>
                   Merchant: <strong>{STATIC_QRIS_MERCHANT.merchantName}</strong> · NMID{" "}
@@ -362,10 +489,19 @@ export function QrisCheckout({
                     <Download className="h-3.5 w-3.5" />
                     Unduh Gambar QRIS
                   </a>
+                  <a
+                    href={buildWaConsultUrl()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    Konsultasi Admin ({adminWaDisplay})
+                  </a>
                 </div>
 
                 <p className="mt-3 text-xs text-slate-600 max-w-sm">
-                  Scan QRIS di atas melalui <strong>GoPay, DANA, OVO, ShopeePay, BCA, BRI, Mandiri, BNI, BSI</strong> lalu masukkan nominal tepat <strong>Rp 10.000</strong>.
+                  Scan QRIS di atas memakai <strong>GoPay, DANA, OVO, ShopeePay, BCA, BRI, Mandiri, BNI, BSI</strong> dengan nominal tepat <strong>Rp 10.000</strong>, lalu wajib konfirmasi ke WhatsApp Admin <strong>{adminWaDisplay}</strong>.
                 </p>
               </div>
 
@@ -376,7 +512,7 @@ export function QrisCheckout({
                     Menunggu Verifikasi Admin (Order: {staticOrder.orderId})
                   </p>
                   <p>
-                    Halaman ini otomatis mengecek status setiap 5 detik. Begitu admin menyetujui pembayaran Anda, dashboard langsung terbuka.
+                    Halaman ini mengecek status otomatis setiap 5 detik. Begitu admin menyetujui konfirmasi WA Anda, dashboard &amp; link Saluran WhatsApp resmi langsung terbuka.
                   </p>
                 </div>
               )}
@@ -395,7 +531,7 @@ export function QrisCheckout({
               <form onSubmit={handleConfirmStaticQris} className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Catatan Pengirim / Jam Transfer (Opsional)
+                    Catatan Nama Pengirim / Jam Transfer (Opsional)
                   </label>
                   <input
                     type="text"
@@ -406,34 +542,24 @@ export function QrisCheckout({
                   />
                 </div>
 
-                <div className="flex flex-wrap gap-2.5">
+                <div className="flex flex-col sm:flex-row gap-2.5">
                   <button
                     type="submit"
                     disabled={staticBusy}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#0B2A52] px-5 py-3.5 text-xs sm:text-sm font-extrabold text-white hover:bg-[#143d73] disabled:opacity-60"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-xs sm:text-sm font-extrabold text-white hover:bg-emerald-700 disabled:opacity-60"
                   >
                     {staticBusy ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <CheckCircle2 className="h-4 w-4 text-amber-400" />
-                    )}
-                    Saya Sudah Bayar Rp 10.000
-                  </button>
-
-                  {hasAdminWa && (
-                    <a
-                      href={`https://wa.me/${sanitizedAdminWa}?text=${encodeURIComponent(
-                        waConfirmText
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3.5 text-xs sm:text-sm font-extrabold text-white hover:bg-emerald-700"
-                    >
                       <MessageCircle className="h-4 w-4" />
-                      Kirim Bukti via WA
-                    </a>
-                  )}
+                    )}
+                    Saya Sudah Bayar &amp; Konfirmasi ke WA Admin ({adminWaDisplay})
+                  </button>
                 </div>
+
+                <p className="text-[11px] text-slate-500 text-center">
+                  Tombol di atas menyimpan order ke sistem sekaligus membuka chat WhatsApp Admin <strong>{adminWaDisplay}</strong> beserta Kode Login Anda untuk verifikasi cepat.
+                </p>
               </form>
             </div>
           ) : (
@@ -515,10 +641,10 @@ export function QrisCheckout({
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
           <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[#0B2A52]">
             <KeyRound className="h-4 w-4 text-amber-500" />
-            Sudah Punya Kode Aktivasi dari Admin?
+            Sudah Menerima Kode Voucher Aktivasi dari Admin?
           </div>
           <p className="mt-1 text-xs text-slate-600">
-            Masukkan kode voucher aktivasi (format <code className="font-mono font-bold">BYG-XXXX-XXXX</code>) untuk langsung membuka akses dashboard tanpa menunggu.
+            Jika admin mengirimkan kode voucher aktivasi setelah Anda konfirmasi WA, masukkan kodenya di sini untuk langsung membuka dashboard.
           </p>
 
           <form onSubmit={handleRedeemVoucher} className="mt-3 flex flex-col sm:flex-row gap-2.5">
@@ -545,18 +671,21 @@ export function QrisCheckout({
         </div>
       </div>
 
-      <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-[#0B2A52] p-6 text-white shadow-sm h-fit">
-        <div className="flex items-center gap-2 text-amber-300 text-xs font-extrabold uppercase tracking-wider">
-          <ShieldCheck className="h-4 w-4" />
-          Yang Langsung Terbuka
+      <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-[#0B2A52] p-6 text-white shadow-sm h-fit space-y-5">
+        <div>
+          <div className="flex items-center gap-2 text-amber-300 text-xs font-extrabold uppercase tracking-wider">
+            <ShieldCheck className="h-4 w-4" />
+            Yang Langsung Terbuka Setelah Bayar
+          </div>
+          <h3 className="mt-2 font-heading text-lg font-extrabold">
+            Paket Lengkap BOYANG-CPNS
+          </h3>
         </div>
-        <h3 className="mt-2 font-heading text-lg font-extrabold">
-          Paket Lengkap BOYANG-CPNS
-        </h3>
-        <ul className="mt-5 space-y-3 text-sm text-slate-200">
+
+        <ul className="space-y-3 text-sm text-slate-200">
           <li className="flex items-start gap-2.5">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-            <span>Explorer <strong>304 PDF Formasi Resmi</strong> (67 Pusat, 26 Provinsi, 166 Kabupaten, 45 Kota) + Bookmark</span>
+            <span>Explorer <strong>304 PDF Formasi Resmi</strong> (Pusat, Provinsi, Kabupaten, Kota) + Bookmark</span>
           </li>
           <li className="flex items-start gap-2.5">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
@@ -568,13 +697,32 @@ export function QrisCheckout({
           </li>
           <li className="flex items-start gap-2.5">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-            <span><strong>Simulasi Tryout CAT SKD</strong> ber-timer + perhitungan Passing Grade BKN &amp; pembahasan</span>
+            <span><strong>Simulasi Tryout CAT SKD</strong> ber-timer + Passing Grade BKN &amp; pembahasan</span>
           </li>
           <li className="flex items-start gap-2.5">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-            <span>Checklist 7 Langkah Pemberkasan SSCASN tersimpan otomatis di akun Anda</span>
+            <span>Akses eksklusif <strong>Saluran WhatsApp Resmi BOYANG-CPNS</strong> terbuka otomatis setelah pembayaran disetujui</span>
           </li>
         </ul>
+
+        <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-xs text-slate-200 space-y-2">
+          <p className="font-extrabold text-amber-300">
+            Butuh Bantuan / Konsultasi?
+          </p>
+          <p>
+            Hubungi Admin resmi BOYANG-CPNS di WhatsApp{" "}
+            <strong className="text-white">{adminWaDisplay}</strong> untuk konfirmasi atau konsultasi pendaftaran.
+          </p>
+          <a
+            href={buildWaConsultUrl()}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 py-2 text-xs font-black text-white hover:bg-emerald-600"
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+            Chat Admin {adminWaDisplay}
+          </a>
+        </div>
       </div>
     </div>
   );

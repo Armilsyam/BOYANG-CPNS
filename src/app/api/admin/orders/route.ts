@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { getDb, isDatabaseConfigured, schema } from "@/db";
+import { ensureDatabaseSchema } from "@/db/ensure-schema";
 import { getCurrentUser } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 import { generateAccessCode } from "@/lib/midtrans";
+import { sendPaymentApprovedNotification } from "@/lib/whatsapp-notify";
 
 export async function GET() {
   if (!isDatabaseConfigured()) {
@@ -16,6 +18,7 @@ export async function GET() {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
+  await ensureDatabaseSchema();
   const db = getDb();
   const [orders, vouchers, users] = await Promise.all([
     db
@@ -73,6 +76,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
+  await ensureDatabaseSchema();
   const body = (await request.json().catch(() => ({}))) as {
     action?: "approve_order" | "approve_user_email" | "create_voucher";
     orderId?: string;
@@ -97,6 +101,9 @@ export async function POST(request: Request) {
     const [targetUser] = await db
       .select({
         id: schema.user.id,
+        name: schema.user.name,
+        email: schema.user.email,
+        whatsapp: schema.user.whatsapp,
         accessCode: schema.user.accessCode,
       })
       .from(schema.user)
@@ -120,6 +127,15 @@ export async function POST(request: Request) {
       })
       .where(eq(schema.user.id, order.userId));
 
+    if (targetUser) {
+      await sendPaymentApprovedNotification({
+        name: targetUser.name,
+        email: targetUser.email,
+        whatsapp: targetUser.whatsapp,
+        accessCode,
+      });
+    }
+
     return NextResponse.json({ ok: true, accessCode, orderId: order.orderId });
   }
 
@@ -128,6 +144,9 @@ export async function POST(request: Request) {
     const [targetUser] = await db
       .select({
         id: schema.user.id,
+        name: schema.user.name,
+        email: schema.user.email,
+        whatsapp: schema.user.whatsapp,
         accessCode: schema.user.accessCode,
       })
       .from(schema.user)
@@ -151,6 +170,13 @@ export async function POST(request: Request) {
         updatedAt: now,
       })
       .where(eq(schema.user.id, targetUser.id));
+
+    await sendPaymentApprovedNotification({
+      name: targetUser.name,
+      email: targetUser.email,
+      whatsapp: targetUser.whatsapp,
+      accessCode,
+    });
 
     return NextResponse.json({ ok: true, email, accessCode });
   }

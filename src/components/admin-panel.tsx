@@ -10,6 +10,7 @@ import {
   PlusCircle,
   ShieldAlert,
   UserCheck,
+  Users,
 } from "lucide-react";
 
 export interface AdminOrderRow {
@@ -28,6 +29,16 @@ export interface AdminOrderRow {
   accessCode: string | null;
 }
 
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  whatsapp: string | null;
+  hasPaidAccess: boolean;
+  accessCode: string | null;
+  createdAt: string;
+}
+
 export interface AdminVoucherRow {
   id: string;
   code: string;
@@ -39,12 +50,15 @@ export interface AdminVoucherRow {
 
 export function AdminPanel({
   initialOrders,
+  initialUsers,
   initialVouchers,
 }: {
   initialOrders: AdminOrderRow[];
+  initialUsers: AdminUserRow[];
   initialVouchers: AdminVoucherRow[];
 }) {
   const [orders, setOrders] = useState<AdminOrderRow[]>(initialOrders);
+  const [users, setUsers] = useState<AdminUserRow[]>(initialUsers);
   const [vouchers, setVouchers] = useState<AdminVoucherRow[]>(initialVouchers);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState("");
@@ -57,6 +71,7 @@ export function AdminPanel({
     if (!res.ok) return;
     const data = await res.json();
     setOrders(data.orders || []);
+    setUsers(data.users || []);
     setVouchers(data.vouchers || []);
   }
 
@@ -71,7 +86,7 @@ export function AdminPanel({
       });
       const data = await res.json();
       if (res.ok) {
-        setFeedback(`Order ${orderId} disetujui! Kode Akses: ${data.accessCode}`);
+        setFeedback(`Order ${orderId} disetujui! Kode Login User: ${data.accessCode}`);
         await refreshAll();
       }
     } finally {
@@ -79,10 +94,8 @@ export function AdminPanel({
     }
   }
 
-  async function approveByEmail(e: React.FormEvent) {
-    e.preventDefault();
-    if (!emailInput.trim()) return;
-    setBusyId("email-activate");
+  async function approveEmailDirectly(targetEmail: string) {
+    setBusyId(targetEmail);
     setFeedback(null);
     try {
       const res = await fetch("/api/admin/orders", {
@@ -90,13 +103,13 @@ export function AdminPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "approve_user_email",
-          email: emailInput.trim(),
+          email: targetEmail.trim(),
         }),
       });
       const data = await res.json();
       if (res.ok) {
-        setFeedback(`Akun ${data.email} aktif! Kode Akses: ${data.accessCode}`);
-        setEmailInput("");
+        setFeedback(`Akun ${data.email} aktif! Kode Login: ${data.accessCode}`);
+        if (targetEmail === emailInput.trim()) setEmailInput("");
         await refreshAll();
       } else {
         setFeedback(data.message || "Gagal mengaktifkan akun.");
@@ -104,6 +117,12 @@ export function AdminPanel({
     } finally {
       setBusyId(null);
     }
+  }
+
+  async function approveByEmailForm(e: React.FormEvent) {
+    e.preventDefault();
+    if (!emailInput.trim()) return;
+    await approveEmailDirectly(emailInput.trim());
   }
 
   async function createVoucher(e: React.FormEvent) {
@@ -144,7 +163,7 @@ export function AdminPanel({
       {/* Quick Tools */}
       <div className="grid gap-4 md:grid-cols-2">
         <form
-          onSubmit={approveByEmail}
+          onSubmit={approveByEmailForm}
           className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3"
         >
           <h2 className="flex items-center gap-2 font-heading text-sm font-black text-[#0B2A52]">
@@ -152,7 +171,7 @@ export function AdminPanel({
             Aktifkan Akun via Email
           </h2>
           <p className="text-xs text-slate-600">
-            Langsung buka akses user yang sudah mendaftar &amp; mengirim bukti transfer QRIS.
+            Langsung buka akses user yang sudah mendaftar &amp; mengirim bukti transfer QRIS ke WA 082291544262.
           </p>
           <div className="flex gap-2">
             <input
@@ -165,7 +184,7 @@ export function AdminPanel({
             />
             <button
               type="submit"
-              disabled={busyId === "email-activate"}
+              disabled={busyId !== null}
               className="rounded-xl bg-[#0B2A52] px-4 py-2 text-xs font-extrabold text-white hover:bg-[#143d73] disabled:opacity-60"
             >
               Aktifkan
@@ -204,21 +223,92 @@ export function AdminPanel({
         </form>
       </div>
 
+      {/* Registered Users with their System Login Code */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+        <h2 className="flex items-center gap-2 font-heading text-base font-black text-[#0B2A52]">
+          <Users className="h-4 w-4 text-amber-500" />
+          Pendaftar &amp; Kode Login Sistem ({users.length})
+        </h2>
+        {users.length === 0 ? (
+          <p className="mt-3 text-xs text-slate-500">Belum ada pendaftar.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-500">
+                  <th className="py-2 pr-3 font-bold">Kode Login</th>
+                  <th className="py-2 pr-3 font-bold">Nama &amp; Email</th>
+                  <th className="py-2 pr-3 font-bold">No. WhatsApp</th>
+                  <th className="py-2 pr-3 font-bold">Status</th>
+                  <th className="py-2 font-bold">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td className="py-2.5 pr-3 font-mono font-black text-[#0B2A52]">
+                      {u.accessCode || "—"}
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <p className="font-bold text-slate-900">{u.name}</p>
+                      <p className="text-[11px] text-slate-500">{u.email}</p>
+                    </td>
+                    <td className="py-2.5 pr-3 font-mono text-slate-700">
+                      {u.whatsapp || "—"}
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold ${
+                          u.hasPaidAccess
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-amber-100 text-amber-900"
+                        }`}
+                      >
+                        {u.hasPaidAccess ? "Lunas / Aktif" : "Belum Bayar"}
+                      </span>
+                    </td>
+                    <td className="py-2.5">
+                      {u.hasPaidAccess ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Aktif
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={busyId === u.email}
+                          onClick={() => approveEmailDirectly(u.email)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          {busyId === u.email && (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          )}
+                          Aktifkan Akses
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Orders Table */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
         <h2 className="font-heading text-base font-black text-[#0B2A52]">
           Daftar Pesanan QRIS Rp 10.000 ({orders.length})
         </h2>
         {orders.length === 0 ? (
-          <p className="mt-3 text-xs text-slate-500">Belum ada transaksi masuk.</p>
+          <p className="mt-3 text-xs text-slate-500">Belum ada konfirmasi order masuk.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="py-2 pr-3 font-bold">Order ID</th>
-                  <th className="py-2 pr-3 font-bold">Pembeli</th>
-                  <th className="py-2 pr-3 font-bold">Metode</th>
+                  <th className="py-2 pr-3 font-bold">Pembeli &amp; Kode Login</th>
                   <th className="py-2 pr-3 font-bold">Catatan</th>
                   <th className="py-2 pr-3 font-bold">Status</th>
                   <th className="py-2 font-bold">Aksi</th>
@@ -233,11 +323,10 @@ export function AdminPanel({
                     <td className="py-2.5 pr-3">
                       <p className="font-bold text-slate-900">{o.userName}</p>
                       <p className="text-[11px] text-slate-500">{o.userEmail}</p>
-                      {o.userWhatsapp && (
-                        <p className="text-[11px] text-slate-500">{o.userWhatsapp}</p>
-                      )}
+                      <p className="font-mono text-[11px] font-bold text-[#0B2A52]">
+                        Kode: {o.accessCode || "—"} {o.userWhatsapp ? `· WA ${o.userWhatsapp}` : ""}
+                      </p>
                     </td>
-                    <td className="py-2.5 pr-3">{o.paymentMethod}</td>
                     <td className="py-2.5 pr-3 text-slate-600">
                       {o.proofNote || "—"}
                     </td>

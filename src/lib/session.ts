@@ -1,8 +1,9 @@
 import { headers } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getDb, isDatabaseConfigured, schema } from "@/db";
 import { ensureDatabaseSchema } from "@/db/ensure-schema";
 import { getAuth } from "@/lib/auth";
+import { generateAccessCode } from "@/lib/midtrans";
 
 export interface AuthenticatedUser {
   id: string;
@@ -45,7 +46,21 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       .where(eq(schema.user.id, session.user.id))
       .limit(1);
 
-    return dbUser ?? null;
+    if (!dbUser) return null;
+
+    // Backfill personal system login code for any existing account created prior to auto-hook
+    if (!dbUser.accessCode) {
+      const code = generateAccessCode();
+      await db
+        .update(schema.user)
+        .set({ accessCode: code, updatedAt: new Date() })
+        .where(
+          and(eq(schema.user.id, dbUser.id), isNull(schema.user.accessCode))
+        );
+      return { ...dbUser, accessCode: code };
+    }
+
+    return dbUser;
   } catch {
     return null;
   }

@@ -4,6 +4,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { AuthCard } from "@/components/auth-card";
 import { QrisCheckout } from "@/components/qris-checkout";
 import { getDb, isDatabaseConfigured, schema } from "@/db";
+import { getAdminWhatsapp, getPaidWaChannelUrl } from "@/lib/admin";
 import { getCurrentUser } from "@/lib/session";
 import { isMidtransConfigured } from "@/lib/midtrans";
 
@@ -72,7 +73,7 @@ export default async function PembayaranPage() {
             Pembayaran Akses BOYANG-CPNS
           </h1>
           <p className="mt-1.5 text-sm text-slate-600">
-            Cukup sekali bayar <strong>Rp 10.000 via QRIS</strong>, akun Anda langsung aktif untuk akses penuh 304 Formasi, Materi SKD &amp; Tryout CAT.
+            Cukup sekali bayar <strong>Rp 10.000 via QRIS</strong> lalu konfirmasi ke WhatsApp Admin untuk membuka dashboard &amp; saluran resmi BOYANG-CPNS.
           </p>
         </div>
 
@@ -80,7 +81,7 @@ export default async function PembayaranPage() {
           <div className="grid gap-8 lg:grid-cols-12 items-start">
             <div className="lg:col-span-6">
               <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-950">
-                <strong>Langkah 1 dari 2:</strong> Buat akun singkat (atau masuk jika sudah daftar) agar status pembayaran Rp 10.000 terikat aman ke akun Anda.
+                <strong>Langkah 1 dari 2:</strong> Buat akun singkat agar sistem langsung menerbitkan <strong>Kode Login Pribadi</strong> untuk Anda.
               </div>
               <AuthCard
                 initialTab="daftar"
@@ -90,13 +91,13 @@ export default async function PembayaranPage() {
             </div>
             <div className="lg:col-span-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
               <h2 className="font-heading text-lg font-black text-[#0B2A52]">
-                Alur Mudah Aktivasi QRIS Rp 10.000
+                Alur Aktivasi &amp; Kode Login Sistem
               </h2>
               <ol className="mt-4 space-y-3 text-sm text-slate-700 list-decimal pl-5">
-                <li>Isi Nama, Email, dan Kata Sandi untuk membuat akun Anda.</li>
-                <li>Scan <strong>QRIS Resmi PODCAST MANDAR, Service</strong> senilai <strong>Rp 10.000</strong>.</li>
-                <li>Klik <strong>Saya Sudah Bayar Rp 10.000</strong> atau masukkan Kode Aktivasi dari admin.</li>
-                <li>Dashboard langsung terbuka dan tersimpan permanen di akun Anda.</li>
+                <li>Isi Nama, Email, No. WhatsApp aktif, dan Kata Sandi.</li>
+                <li>Sistem otomatis membuatkan <strong>Kode Login Pribadi (BYG-XXXX-XXXX)</strong> untuk akun Anda.</li>
+                <li>Scan <strong>QRIS PODCAST MANDAR, Service</strong> senilai <strong>Rp 10.000</strong> lalu klik konfirmasi ke WhatsApp Admin (<strong>082291544262</strong>).</li>
+                <li>Setelah disetujui, dashboard &amp; link <strong>Saluran WhatsApp BOYANG-CPNS</strong> terbuka otomatis!</li>
               </ol>
             </div>
           </div>
@@ -104,12 +105,14 @@ export default async function PembayaranPage() {
           <QrisCheckout
             userName={user.name}
             userEmail={user.email}
+            userWhatsapp={user.whatsapp}
             hasPaidAccess={user.hasPaidAccess}
             accessCode={user.accessCode}
             initialStaticOrder={initialStaticOrder}
             midtransConfigured={midtransConfigured}
             midtransEnv={midtransEnv}
-            adminWhatsapp={process.env.NEXT_PUBLIC_ADMIN_WHATSAPP}
+            adminWhatsapp={getAdminWhatsapp()}
+            waChannelUrl={getPaidWaChannelUrl()}
           />
         )}
       </main>

@@ -9,7 +9,15 @@ import {
   mapMidtransStatus,
   verifyMidtransSignature,
 } from "../src/lib/midtrans";
-import { isAdminEmail, STATIC_QRIS_MERCHANT } from "../src/lib/admin";
+import {
+  buildAdminWhatsappUrl,
+  getAdminWhatsapp,
+  getAdminWhatsappDisplay,
+  getPaidWaChannelUrl,
+  isAdminEmail,
+  normalizeWhatsappNumber,
+  STATIC_QRIS_MERCHANT,
+} from "../src/lib/admin";
 import { gradeTryoutAnswers } from "../src/lib/tryout-scoring";
 
 test("Formasi dataset has all 304 official agency records", () => {
@@ -113,4 +121,19 @@ test("Static merchant QRIS and admin email matching work correctly", () => {
   assert.equal(isAdminEmail("muh.armilsyamsyam@gmail.com"), true);
   assert.equal(isAdminEmail("user@example.com"), false);
   process.env.ADMIN_EMAILS = prev;
+});
+
+test("WhatsApp defaults and normalization target admin 082291544262 and paid channel", () => {
+  assert.equal(normalizeWhatsappNumber("0822-9154-4262"), "6282291544262");
+  assert.equal(normalizeWhatsappNumber("+62 822 9154 4262"), "6282291544262");
+  assert.equal(getAdminWhatsapp(), "6282291544262");
+  assert.equal(getAdminWhatsappDisplay(), "082291544262");
+  assert.equal(
+    getPaidWaChannelUrl(),
+    "https://whatsapp.com/channel/0029VbEZ6tr6rsQx50YzfI0p"
+  );
+  assert.match(
+    buildAdminWhatsappUrl("Tes Konfirmasi"),
+    /^https:\/\/wa\.me\/6282291544262\?text=/
+  );
 });
