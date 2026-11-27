@@ -4,7 +4,11 @@ import { BrandLogo } from "@/components/brand-logo";
 import { AuthCard } from "@/components/auth-card";
 import { QrisCheckout } from "@/components/qris-checkout";
 import { getDb, isDatabaseConfigured, schema } from "@/db";
-import { getAdminWhatsapp, getPaidWaChannelUrl } from "@/lib/admin";
+import {
+  getAdminWhatsapp,
+  getPaidWaChannelUrl,
+  isAdminEmail,
+} from "@/lib/admin";
 import { getCurrentUser } from "@/lib/session";
 import { isMidtransConfigured } from "@/lib/midtrans";
 
@@ -16,6 +20,7 @@ export default async function PembayaranPage() {
   const midtransEnv =
     process.env.MIDTRANS_IS_PRODUCTION === "true" ? "production" : "sandbox";
   const user = await getCurrentUser();
+  const isAdmin = isAdminEmail(user?.email);
 
   let initialStaticOrder: {
     orderId: string;
@@ -54,7 +59,17 @@ export default async function PembayaranPage() {
           <BrandLogo />
           <div className="flex items-center gap-3 text-xs font-bold">
             {user ? (
-              <span className="text-slate-600">{user.email}</span>
+              <>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="rounded-lg bg-amber-400 px-3 py-1.5 font-extrabold text-[#0B2A52] hover:bg-amber-300"
+                  >
+                    Panel Admin
+                  </Link>
+                )}
+                <span className="text-slate-600">{user.email}</span>
+              </>
             ) : (
               <Link
                 href="/masuk"
