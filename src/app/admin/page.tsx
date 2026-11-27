@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { BrandLogo } from "@/components/brand-logo";
+import { AdminLogoutButton } from "@/components/admin-logout-button";
 import {
   AdminPanel,
   type AdminOrderRow,
@@ -8,21 +10,18 @@ import {
   type AdminVoucherRow,
 } from "@/components/admin-panel";
 import { getDb, schema } from "@/db";
-import { isAdminEmail } from "@/lib/admin";
-import { getCurrentUser } from "@/lib/session";
+import { ensureDatabaseSchema } from "@/db/ensure-schema";
+import { getCurrentAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect("/masuk?next=/admin");
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    redirect("/admin/login");
   }
 
-  if (!isAdminEmail(user.email)) {
-    redirect("/dashboard");
-  }
-
+  await ensureDatabaseSchema();
   const db = getDb();
   const [orders, users, vouchers] = await Promise.all([
     db
@@ -87,11 +86,20 @@ export default async function AdminPage() {
   return (
     <div className="min-h-screen bg-[#F4F7FB]">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <BrandLogo href="/dashboard" />
-          <span className="rounded-lg bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">
-            Admin Verifikasi QRIS
-          </span>
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+          <BrandLogo href="/admin" />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="rounded-lg bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">
+              Admin: {admin.identifier}
+            </span>
+            <Link
+              href="/"
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+            >
+              Beranda
+            </Link>
+            <AdminLogoutButton />
+          </div>
         </div>
       </header>
 

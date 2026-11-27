@@ -354,27 +354,35 @@ export default async function HomePage() {
             <ShieldCheck className="h-4 w-4 text-[#0B2A52]" />
             BOYANG-CPNS — Dashboard Independen Persiapan CPNS
           </div>
-          <p>
-            Referensi resmi tetap mengacu pada portal{" "}
-            <a
-              href="https://sscasn.bkn.go.id"
-              target="_blank"
-              rel="noreferrer"
-              className="font-bold text-[#0B2A52] underline"
+          <div className="flex flex-wrap items-center gap-4">
+            <p>
+              Referensi resmi tetap mengacu pada portal{" "}
+              <a
+                href="https://sscasn.bkn.go.id"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-[#0B2A52] underline"
+              >
+                sscasn.bkn.go.id
+              </a>{" "}
+              &amp;{" "}
+              <a
+                href="https://www.menpan.go.id"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-[#0B2A52] underline"
+              >
+                menpan.go.id
+              </a>
+              .
+            </p>
+            <Link
+              href="/admin/login"
+              className="rounded-lg border border-slate-200 px-2.5 py-1 font-bold text-slate-600 hover:bg-slate-50 hover:text-[#0B2A52]"
             >
-              sscasn.bkn.go.id
-            </a>{" "}
-            &amp;{" "}
-            <a
-              href="https://www.menpan.go.id"
-              target="_blank"
-              rel="noreferrer"
-              className="font-bold text-[#0B2A52] underline"
-            >
-              menpan.go.id
-            </a>
-            .
-          </p>
+              Portal Admin
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

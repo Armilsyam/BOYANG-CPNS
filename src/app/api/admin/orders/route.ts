@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { getDb, isDatabaseConfigured, schema } from "@/db";
 import { ensureDatabaseSchema } from "@/db/ensure-schema";
-import { getCurrentUser } from "@/lib/session";
-import { isAdminEmail } from "@/lib/admin";
+import { getCurrentAdmin } from "@/lib/admin-auth";
 import { generateAccessCode } from "@/lib/midtrans";
 import { sendPaymentApprovedNotification } from "@/lib/whatsapp-notify";
 
@@ -12,11 +11,8 @@ export async function GET() {
     return NextResponse.json({ error: "DATABASE_NOT_CONFIGURED" }, { status: 503 });
   }
 
-  const admin = await getCurrentUser();
+  const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  if (!isAdminEmail(admin.email)) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
-  }
 
   await ensureDatabaseSchema();
   const db = getDb();
@@ -70,11 +66,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "DATABASE_NOT_CONFIGURED" }, { status: 503 });
   }
 
-  const admin = await getCurrentUser();
+  const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  if (!isAdminEmail(admin.email)) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
-  }
 
   await ensureDatabaseSchema();
   const body = (await request.json().catch(() => ({}))) as {
@@ -187,7 +180,7 @@ export async function POST(request: Request) {
       id: crypto.randomUUID(),
       code,
       note: body.note?.trim().slice(0, 120) || "Voucher QRIS Rp 10.000",
-      createdByEmail: admin.email,
+      createdByEmail: admin.identifier,
       isActive: true,
     });
     return NextResponse.json({ ok: true, code });

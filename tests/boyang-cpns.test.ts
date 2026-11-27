@@ -20,6 +20,12 @@ import {
   STATIC_QRIS_MERCHANT,
 } from "../src/lib/admin";
 import { gradeTryoutAnswers } from "../src/lib/tryout-scoring";
+import {
+  getAllowedAdminIdentifiers,
+  signAdminToken,
+  verifyAdminCredentials,
+  verifyAdminToken,
+} from "../src/lib/admin-auth";
 
 test("Formasi dataset has all 304 official agency records", () => {
   assert.equal(FORMASI_INSTANSI.length, 304);
@@ -142,4 +148,71 @@ test("WhatsApp defaults and normalization target admin 082291544262 and paid cha
   // Verify multiple generated access codes are unique across different emails
   const codes = new Set(Array.from({ length: 50 }, () => generateAccessCode()));
   assert.equal(codes.size, 50);
+});
+
+test("Dedicated admin login verifies credentials and isolates signed session tokens", () => {
+  const prevSecret = process.env.BETTER_AUTH_SECRET;
+  const prevAdminIds = process.env.ADMIN_LOGIN_IDS;
+  const prevAdminPw = process.env.ADMIN_PASSWORD;
+
+  try {
+    process.env.BETTER_AUTH_SECRET = "test-secret-for-isolated-admin-session-1234";
+    process.env.ADMIN_LOGIN_IDS = "admin, admin@boyang-cpns.id";
+    process.env.ADMIN_PASSWORD = "TestAdminPassword!99";
+
+    const ids = getAllowedAdminIdentifiers();
+    assert.ok(ids.includes("admin"));
+    assert.ok(ids.includes("admin@boyang-cpns.id"));
+
+    const validByUsername = verifyAdminCredentials("Admin", "TestAdminPassword!99");
+    assert.equal(validByUsername.ok, true);
+
+    const validByEmail = verifyAdminCredentials(
+      "ADMIN@boyang-cpns.id",
+      "TestAdminPassword!99"
+    );
+    assert.equal(validByEmail.ok, true);
+
+    const wrongPass = verifyAdminCredentials("admin", "WrongPass123");
+    assert.equal(wrongPass.ok, false);
+
+    const unknownUser = verifyAdminCredentials("peserta@gmail.com", "TestAdminPassword!99");
+    assert.equal(unknownUser.ok, false);
+
+    const nowMs = 1_795_000_000_000;
+    const token = signAdminToken(
+      "admin@boyang-cpns.id",
+      process.env.BETTER_AUTH_SECRET,
+      nowMs,
+      3600
+    );
+    const verified = verifyAdminToken(token, process.env.BETTER_AUTH_SECRET, nowMs + 1000);
+    assert.equal(verified?.identifier, "admin@boyang-cpns.id");
+    assert.equal(verified?.role, "admin");
+
+    // Tampered token must fail
+    const [payloadPart, sigPart] = token.split(".");
+    const tampered = `${payloadPart}x.${sigPart}`;
+    assert.equal(
+      verifyAdminToken(tampered, process.env.BETTER_AUTH_SECRET, nowMs + 1000),
+      null
+    );
+
+    // Expired token must fail
+    assert.equal(
+      verifyAdminToken(token, process.env.BETTER_AUTH_SECRET, nowMs + 3_700_000),
+      null
+    );
+
+    // Missing ADMIN_PASSWORD fails closed
+    process.env.ADMIN_PASSWORD = "";
+    assert.deepEqual(verifyAdminCredentials("admin", "TestAdminPassword!99"), {
+      ok: false,
+      reason: "NOT_CONFIGURED",
+    });
+  } finally {
+    process.env.BETTER_AUTH_SECRET = prevSecret;
+    process.env.ADMIN_LOGIN_IDS = prevAdminIds;
+    process.env.ADMIN_PASSWORD = prevAdminPw;
+  }
 });

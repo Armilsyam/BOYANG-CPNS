@@ -8,7 +8,6 @@ import {
   FileSearch,
   LayoutDashboard,
   LogOut,
-  ShieldCheck,
   Timer,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -26,13 +25,11 @@ export function DashboardShell({
   userName,
   userEmail,
   accessCode,
-  isAdmin = false,
   children,
 }: {
   userName: string;
   userEmail: string;
   accessCode: string | null;
-  isAdmin?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -52,15 +49,6 @@ export function DashboardShell({
           <BrandLogo href="/dashboard" />
 
           <div className="flex items-center gap-3">
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1 text-[11px] font-black text-amber-900 hover:bg-amber-200"
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Admin QRIS
-              </Link>
-            )}
             {accessCode && (
               <span className="hidden md:inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-bold text-emerald-800">
                 ID: {accessCode}

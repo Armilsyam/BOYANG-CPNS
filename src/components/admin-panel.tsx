@@ -417,8 +417,10 @@ export function AdminPanel({
       <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-4 text-[11px] text-slate-500">
         <ShieldAlert className="h-4 w-4 shrink-0 text-amber-500" />
         <span>
-          Halaman ini hanya dapat diakses oleh email yang terdaftar pada environment variable{" "}
-          <code className="font-mono font-bold text-slate-700">ADMIN_EMAILS</code>.
+          Halaman ini terpisah penuh dari login peserta/user dan hanya dapat diakses melalui{" "}
+          <code className="font-mono font-bold text-slate-700">/admin/login</code> memakai kredensial admin server (
+          <code className="font-mono font-bold text-slate-700">ADMIN_LOGIN_IDS</code> &amp;{" "}
+          <code className="font-mono font-bold text-slate-700">ADMIN_PASSWORD</code>).
         </span>
       </div>
     </div>
