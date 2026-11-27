@@ -14,7 +14,12 @@ import {
   Users,
 } from "lucide-react";
 import { getDb, schema } from "@/db";
-import { buildAdminWhatsappUrl, getAdminWhatsappDisplay, getPaidWaChannelUrl } from "@/lib/admin";
+import {
+  FORMASI_PORTAL_URL,
+  buildAdminWhatsappUrl,
+  getAdminWhatsappDisplay,
+  getPaidWaChannelUrl,
+} from "@/lib/admin";
 import { getCurrentUser } from "@/lib/session";
 import { FORMASI_INSTANSI } from "@/data/formasi";
 import { STUDY_MODULES } from "@/data/curriculum";
@@ -78,6 +83,16 @@ export default async function DashboardOverviewPage() {
               Seluruh 304 PDF Formasi, modul kisi-kisi SKD 2026, simulasi CAT, dan Saluran WhatsApp resmi sudah aktif untuk Anda.
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
+              <a
+                href={FORMASI_PORTAL_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2 text-xs font-black text-[#0B2A52] hover:bg-amber-300"
+              >
+                <FileSearch className="h-4 w-4" />
+                Portal Formasi PDF
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
               <a
                 href={waChannelUrl}
                 target="_blank"

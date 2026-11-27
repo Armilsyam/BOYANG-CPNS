@@ -32,6 +32,17 @@ export const ACCESS_PRICE_IDR = 10000;
 
 export const OFFICIAL_RESOURCES: PublicResource[] = [
   {
+    id: "portal-formasi-2024",
+    category: "dokumen",
+    title: "Portal Resmi Pencarian PDF Formasi CPNS (304 Instansi)",
+    description:
+      "Akses langsung halaman pencarian cepat dokumen PDF pengumuman formasi dan persyaratan 304 instansi pusat & daerah.",
+    url: "https://formasi-cpns-2024-jadiasn.vercel.app/",
+    badge: "Portal Formasi PDF",
+    actionLabel: "Buka Portal Formasi",
+    sourceNote: "Akses Member Terverifikasi",
+  },
+  {
     id: "pdf-instansi-2026",
     category: "dokumen",
     title: "Folder PDF Persyaratan & Formasi Instansi CPNS 2026",

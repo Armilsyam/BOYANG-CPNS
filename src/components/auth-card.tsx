@@ -101,11 +101,10 @@ export function AuthCard({
             setTab("masuk");
             setError(null);
           }}
-          className={`rounded-lg py-2 text-sm font-bold transition ${
-            tab === "masuk"
-              ? "bg-white text-[#0B2A52] shadow-xs"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
+          className={`rounded-lg py-2 text-sm font-bold transition ${tab === "masuk"
+            ? "bg-white text-[#0B2A52] shadow-xs"
+            : "text-slate-600 hover:text-slate-900"
+            }`}
         >
           Masuk Akun
         </button>
@@ -115,11 +114,10 @@ export function AuthCard({
             setTab("daftar");
             setError(null);
           }}
-          className={`rounded-lg py-2 text-sm font-bold transition ${
-            tab === "daftar"
-              ? "bg-white text-[#0B2A52] shadow-xs"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
+          className={`rounded-lg py-2 text-sm font-bold transition ${tab === "daftar"
+            ? "bg-white text-[#0B2A52] shadow-xs"
+            : "text-slate-600 hover:text-slate-900"
+            }`}
         >
           Daftar Baru
         </button>

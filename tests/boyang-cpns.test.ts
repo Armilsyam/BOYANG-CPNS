@@ -10,6 +10,7 @@ import {
   verifyMidtransSignature,
 } from "../src/lib/midtrans";
 import {
+  FORMASI_PORTAL_URL,
   buildAdminWhatsappUrl,
   getAdminWhatsapp,
   getAdminWhatsappDisplay,
@@ -136,4 +137,9 @@ test("WhatsApp defaults and normalization target admin 082291544262 and paid cha
     buildAdminWhatsappUrl("Tes Konfirmasi"),
     /^https:\/\/wa\.me\/6282291544262\?text=/
   );
+  assert.equal(FORMASI_PORTAL_URL, "https://formasi-cpns-2024-jadiasn.vercel.app/");
+
+  // Verify multiple generated access codes are unique across different emails
+  const codes = new Set(Array.from({ length: 50 }, () => generateAccessCode()));
+  assert.equal(codes.size, 50);
 });

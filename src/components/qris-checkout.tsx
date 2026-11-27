@@ -22,6 +22,7 @@ import {
 import {
   DEFAULT_ADMIN_WHATSAPP,
   DEFAULT_WA_CHANNEL_URL,
+  FORMASI_PORTAL_URL,
   STATIC_QRIS_MERCHANT,
   normalizeWhatsappNumber,
 } from "@/lib/admin";
@@ -348,6 +349,16 @@ export function QrisCheckout({
         )}
 
         <div className="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href={FORMASI_PORTAL_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-6 py-3.5 text-sm font-black text-[#0B2A52] shadow-sm hover:bg-amber-300"
+          >
+            Buka Portal Formasi CPNS
+            <ExternalLink className="h-4 w-4" />
+          </a>
+
           <Link
             href="/dashboard"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0B2A52] px-6 py-3.5 text-sm font-extrabold text-white shadow-sm hover:bg-[#154078]"

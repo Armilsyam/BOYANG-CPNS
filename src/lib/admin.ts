@@ -9,6 +9,8 @@ export const DEFAULT_ADMIN_WHATSAPP = "6282291544262";
 export const DEFAULT_ADMIN_WHATSAPP_DISPLAY = "082291544262";
 export const DEFAULT_WA_CHANNEL_URL =
   "https://whatsapp.com/channel/0029VbEZ6tr6rsQx50YzfI0p";
+export const FORMASI_PORTAL_URL =
+  "https://formasi-cpns-2024-jadiasn.vercel.app/";
 
 export function normalizeWhatsappNumber(raw?: string | null): string {
   const digits = (raw || "").replace(/[^0-9]/g, "");
